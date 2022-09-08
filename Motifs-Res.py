@@ -1,5 +1,4 @@
 # -- coding: utf-8 --
-# batch ssl 版本
 from baseclass.DeepRecommender import DeepRecommender
 from baseclass.SocialRecommender import SocialRecommender
 import tensorflow as tf
@@ -562,7 +561,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
             # mixed_embedding = tf.layers.batch_normalization(mixed_embedding, training=self.tf_is_training)
             # mixed_embedding = tf.nn.relu(mixed_embedding)
 
-            # todo 6. 方案2：与原有的表示（user_embeddings_c1，user_embeddings_c2，user_embeddings_c3）拼接获得最终表示 可以尝试替换掉上一句channel_attention
             # mixed_embedding = tf.concat(
             #     【user_embeddings_c1 * (1 - self.match_ratio) + c1_user_match_final * self.match_ratio,
             #     user_embeddings_c2 * (1 - self.match_ratio) + c2_user_match_final * self.match_ratio,
@@ -577,7 +575,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
             #                                     (user_embeddings_c3 + norm_c3_user_match_final) / 2)[
             #                       0] + simple_user_embeddings / 2
             new_item_embeddings = tf.sparse_tensor_dense_matmul(tf.sparse.transpose(R), mixed_embedding)
-            # todo 加入A11
             # new_item_embeddings, a = item_channel_attention(new_item_embeddings, item_embeddings_c1)
             # new_item_embeddings = tf.nn.dropout(new_item_embeddings, self.drop_rate)
             norm_embeddings_item = tf.math.l2_normalize(new_item_embeddings, axis=1)
@@ -762,14 +759,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
         return global_loss + local_loss
 
     def modal_ssl(self, em1, em2):
-        """
-            不同模态之间的SSL 实现
-            :param em1 模态1下的节点表示矩阵，每一行是一个节点的表示
-            :param em2 模态2下的节点表示矩阵，每一行是一个节点的表示
-            :return 两个模态的ssl损失数值
-
-        """
-
         def row_shuffle(embedding):
             return tf.gather(embedding, tf.random.shuffle(tf.range(tf.shape(embedding)[0])))
 
@@ -784,7 +773,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
             return tf.reduce_sum(tf.multiply(x1, x2), 1)
 
         # user_embeddings = em1
-        # todo douban数据集的时候注意一下
         # user_embeddings = tf.math.l2_normalize(em,1) #For Douban, normalization is needed.
         # edge_embeddings = tf.sparse_tensor_dense_matmul(adj, user_embeddings)
         # Local MIM
@@ -801,14 +789,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
         return local_loss
 
     def modal_ssl_INfoNce(self, em1, em2):
-        """
-            不同模态之间的SSL 实现
-            :param em1 模态1下的节点表示矩阵，每一行是一个节点的表示
-            :param em2 模态2下的节点表示矩阵，每一行是一个节点的表示
-            :return 两个模态的ssl损失数值
-
-        """
-
         def row_shuffle(embedding):
             return tf.gather(embedding, tf.random.shuffle(tf.range(tf.shape(embedding)[0])))
 
@@ -823,7 +803,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
             return tf.reduce_sum(tf.multiply(x1, x2), 1)
 
         # user_embeddings = em1
-        # todo douban数据集的时候注意一下
         # user_embeddings = tf.math.l2_normalize(em,1) #For Douban, normalization is needed.
         # edge_embeddings = tf.sparse_tensor_dense_matmul(adj, user_embeddings)
         # Local MIM
@@ -853,16 +832,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
         return ssl_loss_user
 
     def hierarchical_modal_ssl(self, em1, em2, adj1, adj2):
-        """
-            不同模态之间的SSL 实现
-            :param em1 模态1下的节点表示矩阵，每一行是一个节点的表示
-            :param em2 模态2下的节点表示矩阵，每一行是一个节点的表示
-            :param adj1 模态1下的关联矩阵
-            :param adj2 模态2下的关联矩阵
-            :return 两个模态的ssl损失数值
-
-        """
-
         def row_shuffle(embedding):
             return tf.gather(embedding, tf.random.shuffle(tf.range(tf.shape(embedding)[0])))
 
@@ -877,7 +846,6 @@ class MotifsRes(SocialRecommender, DeepRecommender):
             return tf.reduce_sum(tf.multiply(x1, x2), 1)
 
         # user_embeddings = em1
-        # todo douban数据集的时候注意一下
         # user_embeddings = tf.math.l2_normalize(em,1) #For Douban, normalization is needed.
         edge_embeddings1 = tf.sparse_tensor_dense_matmul(adj1, em1)
         edge_embeddings2 = tf.sparse_tensor_dense_matmul(adj2, em2)
@@ -901,12 +869,10 @@ class MotifsRes(SocialRecommender, DeepRecommender):
         return global_loss + local_loss
         # return local_loss
 
-    # 获取一跳子图表示
     def get_one_hop_topic_graph_rep(self, em, adj):
         user_embeddings = em
         edge_embeddings = tf.sparse_tensor_dense_matmul(adj, user_embeddings)
         return edge_embeddings
-        # 获取一跳子图表示
 
     def fm(self, em1, em2, with_mp_cosine=False, with_cosine=True):
         input_shape = tf.shape(em1)
